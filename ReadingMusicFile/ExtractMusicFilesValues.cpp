@@ -80,8 +80,8 @@ int main() {
 
 			if (findClef != string::npos) { // if findClef is not at position 0 (invalid position)
 				clef = line.substr(findClef + 5);  // set clef equal to string of characters after colon
-				if (clef == "Treble\n")  outFile << "trebleCounter: " << trebleCounter << endl; 
-				else if (clef == "Bass\n") outFile << "bassCounter: " << bassCounter << endl; 
+				if (clef == "Treble\n")  trebleCounter++; 
+				else if (clef == "Bass\n") bassCounter++; 
 			}
 
 			if (findSignature != string::npos) {
