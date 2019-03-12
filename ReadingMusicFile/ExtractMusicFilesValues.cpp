@@ -54,8 +54,8 @@ int main() {
 	std::string::size_type findSignature;
 	std::string::size_type findRest;
 
-	inFile.open("One_More_Light.nwctxt");
-	outFile.open("OML_values.txt");
+	inFile.open("One_More_Light.nwctxt"); // this can be changed for any .nwctxt file you have in your directory
+	outFile.open("OML_values.txt"); // name of the output file that all the values are written to
 
 	if (inFile.is_open()) {
 		while (getline(inFile, line, '|')) { // read values in between '|' symbols and output to text file
