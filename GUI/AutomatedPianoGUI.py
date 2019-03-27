@@ -1,9 +1,15 @@
 from tkinter import *
 from tkinter.ttk import *
+from tkinter import messagebox
 import time
 
+counter = 0
+uploaded = 0 # 0 = song not uploaded to MSP432
+paused = 1 # 1 = song is paused
+currentSongLength = 0
+
 window = Tk()
-window.title("Piano Playing Hands")
+window.title("Hands of Beethoven")
 
 window.geometry('650x450')
 
@@ -19,6 +25,7 @@ progress = Progressbar(window,orient=HORIZONTAL,length=235,mode='determinate')
 songlist.place(x = 0,y = 0)
 
 def get_selection():
+	global currentSongLength
 	window.after(200, get_selection)
 	temp = songlist.curselection() # returns tuple of which song in the list was selected
 	if temp:
@@ -38,7 +45,7 @@ def get_selection():
 		songLabel.place_configure(x = songNamePosition,y = 0)
 		lengthlabel.place_configure(x = 516,y = 272)
 		currentTimelabel.place_configure(x = 245,y = 272)
-		downloadButton.place_configure(x = 331, y = 380)
+		uploadButton.place_configure(x = 335, y = 380)
 		songLabel.configure(text = currentSongName)
 		
 		mins, secs = divmod(currentSongLength, 60)
@@ -46,40 +53,48 @@ def get_selection():
 		secs = round(secs)
 		timeformat = '{:02d}:{:02d}'.format(mins, secs)
 		lengthlabel['text'] = timeformat
-		
-counter = 0
+	
 def play_button():
+	global paused
 	paused = 0
-	counter = 0
 	statusbar['text'] = "Playing music"
-	count()
+	if uploaded == 0:
+		messagebox.showerror("Error", "You must upload the song the MSP432 before pressing play.")
+	elif uploaded == 1:
+		count()
 	
 def count():
 	global counter
-	counter += 1
-	progress["value"]=counter
-	progress.update()
-	mins, secs = divmod(counter, 60)
-	mins = round(mins)
-	secs = round(secs)
-	timeformat = '{:02d}:{:02d}'.format(mins, secs)
-	currentTimelabel['text'] = timeformat
-	currentTimelabel.after(1000,count)
+	global currentSongLength
+	if paused == 0: # song not paused
+		if counter < currentSongLength:
+			counter += 1
+			progress["value"]=counter
+			progress.update()
+			mins, secs = divmod(counter, 60)
+			mins = round(mins)
+			secs = round(secs)
+			timeformat = '{:02d}:{:02d}'.format(mins, secs)
+			currentTimelabel['text'] = timeformat
+			currentTimelabel.after(1000,count)
 		
 def stop_button():
     statusbar['text'] = "Music Stopped"
 	
 def pause_button():
-	paused = 1
+	global paused
+	paused = 1 # song is paused
 	statusbar['text'] = "Music Paused"
 	
-def download_button():
+def upload_button():
 	statusbar['text'] = "Sending song data to MSP432"
+	global uploaded
+	uploaded = 1
 	
 canvas = Canvas(window, width = 250, height = 250)
 canvas.place(x = 260,y = 5)
 
-statusbar = Label(window, text="Press a button", relief=SUNKEN, anchor=W)
+statusbar = Label(window, text="Select a song", relief=SUNKEN, anchor=W)
 statusbar.place(x = 0,y = 425)
 
 playButtonPhoto = PhotoImage(file='play.png')
@@ -97,7 +112,7 @@ lengthlabel = Label(window)
 
 currentTimelabel = Label(window, text='00:00')
 
-downloadButton = Button(window, text = 'Download to MSP432',command = download_button)
+uploadButton = Button(window, text = 'Upload to MSP432',command = upload_button)
 
 get_selection()
 window.mainloop()
