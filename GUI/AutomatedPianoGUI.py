@@ -1,22 +1,32 @@
+from pylab import *
 from tkinter import *
 from tkinter.ttk import *
 from tkinter import messagebox
 import time
+import serial
+import sys
+
+ser = serial.Serial()
+ser.baudrate = 9600
+ser.port = 'COM4'
+ser.open()
+#print(ser)
 
 counter = 0
-uploaded = 0 # 0 = song not uploaded to MSP432
 paused = 1 # 1 = song is paused
 currentSongLength = 0
+startChar = None
 
 window = Tk()
 window.title("Hands of Beethoven")
 
 window.geometry('650x450')
 
-songNames = ["One More Light - Linkin Park","Mortal Kombat Theme Song","Dearly Beloved - Kingdom Hearts","Secrets - One Republic","The Office Theme Song"]
-songNamesXPosition = [320,320,308,335,333]
-songPictures = ['one_more_light.png','mortal_kombat.png','kingdom_hearts.png','secrets.png','the_office.png']
-songLengths = [249,98,152,178,37]
+songNames = ["One More Light - Linkin Park","Mortal Kombat Theme Song","Secrets - One Republic","The Office Theme Song", "Heart and Soul - The Cleftones"]
+songNamesXPosition = [320,320,335,333,320]
+songPictures = ['one_more_light.png','mortal_kombat.png','secrets.png','the_office.png','heart_and_soul.png']
+songLengths = [249,98,178,37,81]
+startSongCharacters = ['l','m','s','o','h']
 songlist = Listbox(window,width = 30,selectmode=SINGLE)
 for song in songNames:
 	songlist.insert(END,song)
@@ -26,6 +36,7 @@ songlist.place(x = 0,y = 0)
 
 def get_selection():
 	global currentSongLength
+	global startChar
 	window.after(200, get_selection)
 	temp = songlist.curselection() # returns tuple of which song in the list was selected
 	if temp:
@@ -34,6 +45,7 @@ def get_selection():
 		currentSongLength = songLengths[song]
 		songPhoto = PhotoImage(file=songPictures[song])
 		songNamePosition = songNamesXPosition[song]
+		startChar = startSongCharacters[song]
 		
 		window.songPhoto = songPhoto
 		canvas.create_image(20,20, anchor=NW, image=songPhoto)
@@ -45,7 +57,6 @@ def get_selection():
 		songLabel.place_configure(x = songNamePosition,y = 0)
 		lengthlabel.place_configure(x = 516,y = 272)
 		currentTimelabel.place_configure(x = 245,y = 272)
-		uploadButton.place_configure(x = 335, y = 380)
 		songLabel.configure(text = currentSongName)
 		
 		mins, secs = divmod(currentSongLength, 60)
@@ -58,10 +69,17 @@ def play_button():
 	global paused
 	paused = 0
 	statusbar['text'] = "Playing music"
-	if uploaded == 0:
-		messagebox.showerror("Error", "You must upload the song the MSP432 before pressing play.")
-	elif uploaded == 1:
-		count()
+	if startChar == 'l':
+		ser.write(b'l')
+	elif startChar == 'm':
+		ser.write(b'm')
+	elif startChar == 's':
+		ser.write(b's')
+	elif startChar == 'o':
+		ser.write(b'o')
+	elif startChar == 'h':
+		ser.write(b'h')
+	count()
 	
 def count():
 	global counter
@@ -79,17 +97,26 @@ def count():
 			currentTimelabel.after(1000,count)
 		
 def stop_button():
-    statusbar['text'] = "Music Stopped"
+	global counter
+	global paused
+	counter = 0
+	paused = 1
+	progress["value"]=counter
+	progress.update()
+	mins, secs = divmod(counter, 60)
+	mins = round(mins)
+	secs = round(secs)
+	timeformat = '{:02d}:{:02d}'.format(mins, secs)
+	currentTimelabel['text'] = timeformat
+	currentTimelabel.after(1000,count)
+	statusbar['text'] = "Music Stopped"
+	ser.write(b'z')
 	
 def pause_button():
 	global paused
 	paused = 1 # song is paused
 	statusbar['text'] = "Music Paused"
-	
-def upload_button():
-	statusbar['text'] = "Sending song data to MSP432"
-	global uploaded
-	uploaded = 1
+	ser.write(b'y')
 	
 canvas = Canvas(window, width = 250, height = 250)
 canvas.place(x = 260,y = 5)
@@ -111,8 +138,6 @@ songLabel = Label(window, relief=FLAT)
 lengthlabel = Label(window)
 
 currentTimelabel = Label(window, text='00:00')
-
-uploadButton = Button(window, text = 'Upload to MSP432',command = upload_button)
 
 get_selection()
 window.mainloop()
